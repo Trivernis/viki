@@ -1,32 +1,33 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 use futures::future;
 use miette::{IntoDiagnostic, Result};
-use tera::{Context, Tera};
+use tera::{Context as TeraContext, Tera};
 use tokio::fs;
 
-use crate::data::{load_page, FolderData};
+use crate::{
+    context::Context,
+    data::{load_page, FolderData},
+};
 
 // renders content using the given template folder
 pub struct ContentRenderer {
     template_glob: String,
-    out_dir: PathBuf,
-    content_dir: PathBuf,
+    ctx: Arc<Context>,
 }
 
 impl ContentRenderer {
-    pub fn new(template_glob: String, content_dir: PathBuf, out_dir: PathBuf) -> Self {
-        Self {
-            template_glob,
-            content_dir,
-            out_dir,
-        }
+    pub fn new(ctx: Arc<Context>) -> Self {
+        let template_glob = format!("{}/**/*", ctx.template_dir.to_string_lossy());
+        Self { template_glob, ctx }
     }
 
     #[tracing::instrument(level = "trace", skip_all)]
     pub async fn render_all(&self, dirs: Vec<FolderData>) -> Result<()> {
-        if self.out_dir.exists() {
-            fs::remove_dir_all(&self.out_dir).await.into_diagnostic()?;
+        if self.ctx.output_dir.exists() {
+            fs::remove_dir_all(&self.ctx.output_dir)
+                .await
+                .into_diagnostic()?;
         }
         let mut tera = Tera::new(&self.template_glob).into_diagnostic()?;
         super::processors::register_all(&mut tera);
@@ -70,7 +71,7 @@ impl ContentRenderer {
         tracing::debug!("Rendering {page_path:?}");
 
         let page = load_page(&page_path).await?;
-        let mut context = Context::new();
+        let mut context = TeraContext::new();
         let mut template_name = default_template;
 
         match page {
@@ -87,9 +88,9 @@ impl ContentRenderer {
 
         let html = tera.render(&template_name, &context).into_diagnostic()?;
         let rel_path = page_path
-            .strip_prefix(&self.content_dir)
+            .strip_prefix(&self.ctx.content_dir)
             .into_diagnostic()?;
-        let mut out_path = self.out_dir.join(rel_path);
+        let mut out_path = self.ctx.output_dir.join(rel_path);
         out_path.set_extension("html");
         let parent = out_path.parent().unwrap();
 

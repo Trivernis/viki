@@ -1,6 +1,12 @@
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
 use args::BuildArgs;
 use clap::Parser;
 use config::{read_config, Config};
+use context::Context;
 use data::DirLoader;
 use miette::Result;
 use rendering::ContentRenderer;
@@ -11,6 +17,7 @@ use crate::args::Args;
 
 mod args;
 mod config;
+mod context;
 pub mod data;
 mod processors;
 mod rendering;
@@ -29,22 +36,31 @@ async fn main() -> Result<()> {
 }
 
 async fn build(args: &Args, _build_args: &BuildArgs, cfg: Config) -> Result<()> {
-    let folders = cfg.folders;
     let base_path = &args.directory;
-    let content_dir = base_path.join(folders.content.unwrap_or("content".into()));
-    let template_dir = base_path.join(folders.templates.unwrap_or("templates".into()));
-    let out_dir = base_path.join(folders.output.unwrap_or("dist".into()));
+    let ctx = Arc::new(build_context(&base_path, &cfg));
 
-    let dirs = DirLoader::new(content_dir.to_owned())
+    let dirs = DirLoader::new(ctx.content_dir.to_owned())
         .read_content()
         .await?;
 
-    let template_glob = format!("{}/**/*", template_dir.to_string_lossy());
-    ContentRenderer::new(template_glob, content_dir, out_dir)
-        .render_all(dirs)
-        .await?;
+    ContentRenderer::new(ctx).render_all(dirs).await?;
 
     Ok(())
+}
+
+fn build_context(base_path: &Path, config: &Config) -> Context {
+    let folders = config.folders.clone();
+    let content_dir = base_path.join(folders.content.unwrap_or("content".into()));
+    let template_dir = base_path.join(folders.templates.unwrap_or("templates".into()));
+    let output_dir = base_path.join(folders.output.unwrap_or("dist".into()));
+    let stylesheet_dir = base_path.join(folders.stylesheets.unwrap_or("style".into()));
+
+    Context {
+        content_dir,
+        template_dir,
+        stylesheet_dir,
+        output_dir,
+    }
 }
 
 fn init_tracing() {

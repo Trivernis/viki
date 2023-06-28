@@ -13,6 +13,7 @@ pub struct Config {
 pub struct Folders {
     pub content: Option<PathBuf>,
     pub templates: Option<PathBuf>,
+    pub stylesheets: Option<PathBuf>,
     pub output: Option<PathBuf>,
 }
 
