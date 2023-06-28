@@ -15,7 +15,6 @@ pub struct DirLoader {
 
 #[derive(Clone, Debug)]
 pub struct FolderData {
-    pub content_root: PathBuf,
     pub path: PathBuf,
     pub index: IndexData,
     pub pages: Vec<PathBuf>,
@@ -69,7 +68,6 @@ impl DirLoader {
             path,
             index: index_data,
             pages,
-            content_root: self.base_path.to_owned(),
         }))
     }
 }
