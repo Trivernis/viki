@@ -10,6 +10,8 @@ use crate::{
     data::{load_page, FolderData},
 };
 
+mod style;
+
 // renders content using the given template folder
 pub struct ContentRenderer {
     template_glob: String,
