@@ -1,0 +1,19 @@
+[package]
+name = "viki"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+async-walkdir = "0.2.0"
+clap = { version = "4.3.8", features = ["derive"] }
+futures = "0.3.28"
+globset = { version = "0.4.10", features = ["serde", "serde1"] }
+miette = { version = "5.9.0", features = ["serde", "fancy"] }
+serde = { version = "1.0.164", features = ["derive"] }
+tera = "1.19.0"
+tokio = { version = "1.29.0", features = ["rt-multi-thread", "net", "macros", "sync", "fs", "io-std", "io-util", "time", "process"] }
+toml = "0.7.5"
+tracing = { version = "0.1.37", features = ["async-await", "release_max_level_debug"] }
+tracing-subscriber = { version = "0.3.17", features = ["serde", "env-filter"] }
