@@ -15,6 +15,7 @@ pub struct DirLoader {
 
 #[derive(Clone, Debug)]
 pub struct FolderData {
+    pub content_root: PathBuf,
     pub path: PathBuf,
     pub index: IndexData,
     pub pages: Vec<PathBuf>,
@@ -44,23 +45,19 @@ impl DirLoader {
             }
         }
 
-        let results = futures::future::join_all(paths.into_iter().map(Self::read_dir)).await;
-        let mut folder_data = Vec::new();
-
-        for res in results {
-            match res {
-                Ok(Some(data)) => folder_data.push(data),
-                Err(e) => return Err(e),
-                _ => {}
-            }
-        }
+        let folder_data =
+            futures::future::try_join_all(paths.into_iter().map(|p| self.read_dir(p)))
+                .await?
+                .into_iter()
+                .filter_map(|f| f)
+                .collect();
 
         Ok(folder_data)
     }
 
-    #[tracing::instrument(level = "trace")]
-    async fn read_dir(path: PathBuf) -> Result<Option<FolderData>> {
-        let index_path = path.join("_index.md");
+    #[tracing::instrument(level = "trace", skip(self))]
+    async fn read_dir(&self, path: PathBuf) -> Result<Option<FolderData>> {
+        let index_path = path.join("_index.toml");
 
         if !index_path.exists() {
             return Ok(None);
@@ -72,6 +69,7 @@ impl DirLoader {
             path,
             index: index_data,
             pages,
+            content_root: self.base_path.to_owned(),
         }))
     }
 }
@@ -101,6 +99,11 @@ async fn find_pages(dir: &Path, index_data: &IndexData) -> Result<Vec<PathBuf>> 
         let entry_path = entry.path();
 
         if entry_path.is_file()
+            && !entry_path
+                .file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("_")
             && include_set.is_match(&entry_path)
             && !excluded_set.is_match(&entry_path)
         {
@@ -112,9 +115,12 @@ async fn find_pages(dir: &Path, index_data: &IndexData) -> Result<Vec<PathBuf>> 
 }
 
 #[tracing::instrument(level = "trace")]
-fn build_glob_set(globs: &Vec<Glob>) -> GlobSetBuilder {
+fn build_glob_set(globs: &Vec<String>) -> GlobSetBuilder {
     let mut builder = GlobSetBuilder::new();
-    globs.iter().fold(&mut builder, |b, g| b.add(g.clone()));
+    globs
+        .iter()
+        .filter_map(|pattern| Glob::new(pattern).ok())
+        .fold(&mut builder, |b, g| b.add(g));
 
     builder
 }

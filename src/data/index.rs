@@ -1,6 +1,3 @@
-use std::collections::HashMap;
-
-use globset::Glob;
 use serde::Deserialize;
 
 #[derive(Clone, Debug, Deserialize)]
@@ -9,11 +6,10 @@ pub struct IndexData {
     pub default_template: Option<String>,
 
     /// files that are included for rendering
-    pub include_files: Vec<Glob>,
+    #[serde(default)]
+    pub include_files: Vec<String>,
 
     /// files that are explicitly excluded from rendering
-    pub excluded_files: Vec<Glob>,
-
-    /// File paths with templates used to rendering them
-    pub templates: HashMap<Glob, String>,
+    #[serde(default)]
+    pub excluded_files: Vec<String>,
 }
