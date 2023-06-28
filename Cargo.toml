@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 async-walkdir = "0.2.0"
 clap = { version = "4.3.8", features = ["derive"] }
+comrak = { version = "0.18.0", features = ["emojis"] }
 futures = "0.3.28"
 globset = { version = "0.4.10", features = ["serde", "serde1"] }
 miette = { version = "5.9.0", features = ["serde", "fancy"] }
