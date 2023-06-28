@@ -19,17 +19,17 @@ async fn main() -> Result<()> {
     let args: Args = Args::parse();
     init_tracing();
 
-    match args.command {
+    match &args.command {
         args::Command::Build(build_args) => {
-            let cfg = read_config(&build_args.directory).await?;
-            build(cfg, build_args).await
+            let cfg = read_config(&args.directory).await?;
+            build(&args, &build_args, cfg).await
         }
     }
 }
 
-async fn build(cfg: Config, args: BuildArgs) -> Result<()> {
+async fn build(args: &Args, _build_args: &BuildArgs, cfg: Config) -> Result<()> {
     let folders = cfg.folders;
-    let base_path = args.directory;
+    let base_path = &args.directory;
     let content_dir = base_path.join(folders.content.unwrap_or("content".into()));
     let template_dir = base_path.join(folders.templates.unwrap_or("templates".into()));
     let out_dir = base_path.join(folders.output.unwrap_or("public".into()));

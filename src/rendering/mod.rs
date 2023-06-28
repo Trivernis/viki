@@ -45,7 +45,7 @@ impl ContentRenderer {
 
             match page {
                 crate::data::Page::Data(data) => {
-                    if let Some(tmpl) = data.template {
+                    if let Some(tmpl) = data.metadata.template {
                         template_name = tmpl;
                     }
                     context.insert("data", &data.data);

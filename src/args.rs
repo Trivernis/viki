@@ -7,6 +7,9 @@ use clap::{Parser, Subcommand};
 pub struct Args {
     #[command(subcommand)]
     pub command: Command,
+
+    #[clap(default_value = ".")]
+    pub directory: PathBuf,
 }
 
 #[derive(Clone, Debug, Subcommand)]
@@ -16,7 +19,4 @@ pub enum Command {
 }
 
 #[derive(Clone, Debug, Parser)]
-pub struct BuildArgs {
-    #[clap(default_value = ".")]
-    pub directory: PathBuf,
-}
+pub struct BuildArgs {}
