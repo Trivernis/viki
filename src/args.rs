@@ -8,7 +8,7 @@ pub struct Args {
     #[command(subcommand)]
     pub command: Command,
 
-    #[clap(default_value = ".")]
+    #[clap(long, short, default_value = ".")]
     pub directory: PathBuf,
 }
 
