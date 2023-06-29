@@ -34,12 +34,6 @@ impl<S1: ProcessingStep, S2: ProcessingStep<Input = S1::Output>> ProcessingStep
     }
 }
 
-impl<S: ProcessingStep> ParallelPipeline<S> {
-    pub fn new(step: S) -> Self {
-        Self(step)
-    }
-}
-
 #[async_trait]
 impl<S: ProcessingStep> ProcessingStep for ParallelPipeline<S> {
     type Input = Vec<S::Input>;
@@ -57,6 +51,14 @@ pub trait ProcessingStepChain: Sized + ProcessingStep {
 }
 
 impl<S: ProcessingStep> ProcessingStepChain for S {}
+
+pub trait ProcessingStepParallel: Sized + ProcessingStep {
+    fn parallel(self) -> ParallelPipeline<Self> {
+        ParallelPipeline(self)
+    }
+}
+
+impl<S: ProcessingStep> ProcessingStepParallel for S {}
 
 pub trait IntoPipeline: Sized + ProcessingStep + 'static {
     fn into_pipeline(self) -> ProcessingPipeline<Self::Input, Self::Output> {
