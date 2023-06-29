@@ -1,7 +1,4 @@
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{path::Path, sync::Arc};
 
 use args::BuildArgs;
 use clap::Parser;
@@ -43,7 +40,7 @@ async fn build(args: &Args, _build_args: &BuildArgs, cfg: Config) -> Result<()> 
         .read_content()
         .await?;
 
-    ContentRenderer::new(ctx).render_all(dirs).await?;
+    ContentRenderer::new(ctx).await?.render_all(dirs).await?;
 
     Ok(())
 }
@@ -53,7 +50,7 @@ fn build_context(base_path: &Path, config: &Config) -> Context {
     let content_dir = base_path.join(folders.content.unwrap_or("content".into()));
     let template_dir = base_path.join(folders.templates.unwrap_or("templates".into()));
     let output_dir = base_path.join(folders.output.unwrap_or("dist".into()));
-    let stylesheet_dir = base_path.join(folders.stylesheets.unwrap_or("style".into()));
+    let stylesheet_dir = base_path.join(folders.stylesheets.unwrap_or("styles".into()));
 
     Context {
         content_dir,
