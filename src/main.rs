@@ -3,7 +3,7 @@ use std::{path::Path, sync::Arc};
 use args::BuildArgs;
 use clap::Parser;
 use config::{read_config, Config};
-use context::Context;
+use context::{Context, Dirs};
 use data::DirLoader;
 use miette::Result;
 use rendering::ContentRenderer;
@@ -37,7 +37,7 @@ async fn build(args: &Args, _build_args: &BuildArgs, cfg: Config) -> Result<()> 
     let base_path = &args.directory;
     let ctx = Arc::new(build_context(&base_path, &cfg));
 
-    let dirs = DirLoader::new(ctx.content_dir.to_owned())
+    let dirs = DirLoader::new(ctx.dirs.content_dir.to_owned())
         .read_content()
         .await?;
 
@@ -54,10 +54,12 @@ fn build_context(base_path: &Path, config: &Config) -> Context {
     let stylesheet_dir = base_path.join(folders.stylesheets.unwrap_or("styles".into()));
 
     Context {
-        content_dir,
-        template_dir,
-        stylesheet_dir,
-        output_dir,
+        dirs: Dirs {
+            content_dir,
+            template_dir,
+            stylesheet_dir,
+            output_dir,
+        },
     }
 }
 

@@ -23,8 +23,8 @@ pub struct ContentRenderer {
 
 impl ContentRenderer {
     pub async fn new(ctx: Arc<Context>) -> Result<Self> {
-        let template_glob = format!("{}/**/*", ctx.template_dir.to_string_lossy());
-        let styles = load_stylesheets(&ctx.stylesheet_dir).await?;
+        let template_glob = format!("{}/**/*", ctx.dirs.template_dir.to_string_lossy());
+        let styles = load_stylesheets(&ctx.dirs.stylesheet_dir).await?;
 
         Ok(Self {
             template_glob,
@@ -35,8 +35,8 @@ impl ContentRenderer {
 
     #[tracing::instrument(level = "trace", skip_all)]
     pub async fn render_all(&self, dirs: Vec<FolderData>) -> Result<()> {
-        if self.ctx.output_dir.exists() {
-            fs::remove_dir_all(&self.ctx.output_dir)
+        if self.ctx.dirs.output_dir.exists() {
+            fs::remove_dir_all(&self.ctx.dirs.output_dir)
                 .await
                 .into_diagnostic()?;
         }
@@ -99,7 +99,7 @@ impl ContentRenderer {
         {
             let mut styles = self.styles.lock().await;
             let style_embed = styles
-                .get_style_embed(&style_name, &self.ctx.output_dir)
+                .get_style_embed(&style_name, &self.ctx.dirs.output_dir)
                 .await?;
             context.insert("style", &style_embed);
         };
@@ -110,9 +110,9 @@ impl ContentRenderer {
             .render(&format!("{template_name}.html"), &context)
             .into_diagnostic()?;
         let rel_path = page_path
-            .strip_prefix(&self.ctx.content_dir)
+            .strip_prefix(&self.ctx.dirs.content_dir)
             .into_diagnostic()?;
-        let mut out_path = self.ctx.output_dir.join(rel_path);
+        let mut out_path = self.ctx.dirs.output_dir.join(rel_path);
         out_path.set_extension("html");
         let parent = out_path.parent().unwrap();
 

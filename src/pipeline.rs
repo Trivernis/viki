@@ -1,7 +1,14 @@
 use async_trait::async_trait;
+use futures::future;
 use miette::Result;
 
+/// The result of combining two processing steps
 pub struct ProcessingChain<S1: ProcessingStep, S2: ProcessingStep<Input = S1::Output>>(S1, S2);
+
+/// An adapter to execute a step with multiple inputs in parallel
+pub struct ParallelPipeline<S: ProcessingStep>(S);
+
+/// A generic wrapper for processing pipelines
 pub struct ProcessingPipeline<I: Send + Sync, O: Send + Sync>(
     Box<dyn ProcessingStep<Input = I, Output = O>>,
 );
@@ -24,6 +31,22 @@ impl<S1: ProcessingStep, S2: ProcessingStep<Input = S1::Output>> ProcessingStep
     async fn process(&self, input: Self::Input) -> Result<Self::Output> {
         let first = self.0.process(input).await?;
         self.1.process(first).await
+    }
+}
+
+impl<S: ProcessingStep> ParallelPipeline<S> {
+    pub fn new(step: S) -> Self {
+        Self(step)
+    }
+}
+
+#[async_trait]
+impl<S: ProcessingStep> ProcessingStep for ParallelPipeline<S> {
+    type Input = Vec<S::Input>;
+    type Output = Vec<S::Output>;
+
+    async fn process(&self, input: Self::Input) -> Result<Self::Output> {
+        future::try_join_all(input.into_iter().map(|i| self.0.process(i))).await
     }
 }
 
