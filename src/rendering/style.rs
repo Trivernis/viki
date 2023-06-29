@@ -12,6 +12,7 @@ use tokio::fs;
 const DEFAULT_SHEET_NAME: &str = "style";
 const EMBED_THRESHOLD: usize = 512;
 
+#[derive(Default)]
 pub struct Stylesheets {
     page_styles: HashMap<String, PathBuf>,
     processed_styles: HashMap<String, String>,
@@ -19,6 +20,9 @@ pub struct Stylesheets {
 
 #[tracing::instrument(level = "trace")]
 pub async fn load_stylesheets(base_dir: &PathBuf) -> Result<Stylesheets> {
+    if !base_dir.exists() {
+        return Ok(Stylesheets::default());
+    }
     let mut entries = WalkDir::new(base_dir);
     let mut page_styles = HashMap::new();
     let empty_path = PathBuf::new();

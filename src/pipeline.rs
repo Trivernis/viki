@@ -3,10 +3,13 @@ use futures::future;
 use miette::Result;
 
 /// The result of combining two processing steps
-pub struct ProcessingChain<S1: ProcessingStep, S2: ProcessingStep<Input = S1::Output>>(S1, S2);
+pub struct Chained<S1: ProcessingStep, S2: ProcessingStep<Input = S1::Output>>(S1, S2);
 
 /// An adapter to execute a step with multiple inputs in parallel
-pub struct ParallelPipeline<S: ProcessingStep>(S);
+pub struct Parallel<S: ProcessingStep>(S);
+
+/// An adapter to map the result of the pipeline
+pub struct Map<S: ProcessingStep, T: Send + Sync>(S, Box<dyn Fn(S::Output) -> T + Send + Sync>);
 
 /// A generic wrapper for processing pipelines
 pub struct ProcessingPipeline<I: Send + Sync, O: Send + Sync>(
@@ -23,7 +26,7 @@ pub trait ProcessingStep: Send + Sync {
 
 #[async_trait]
 impl<S1: ProcessingStep, S2: ProcessingStep<Input = S1::Output>> ProcessingStep
-    for ProcessingChain<S1, S2>
+    for Chained<S1, S2>
 {
     type Input = S1::Input;
     type Output = S2::Output;
@@ -35,7 +38,7 @@ impl<S1: ProcessingStep, S2: ProcessingStep<Input = S1::Output>> ProcessingStep
 }
 
 #[async_trait]
-impl<S: ProcessingStep> ProcessingStep for ParallelPipeline<S> {
+impl<S: ProcessingStep> ProcessingStep for Parallel<S> {
     type Input = Vec<S::Input>;
     type Output = Vec<S::Output>;
 
@@ -44,21 +47,21 @@ impl<S: ProcessingStep> ProcessingStep for ParallelPipeline<S> {
     }
 }
 
-pub trait ProcessingStepChain: Sized + ProcessingStep {
-    fn chain<S: ProcessingStep<Input = Self::Output>>(self, other: S) -> ProcessingChain<Self, S> {
-        ProcessingChain(self, other)
+pub trait ProcessingChain: Sized + ProcessingStep {
+    fn chain<S: ProcessingStep<Input = Self::Output>>(self, other: S) -> Chained<Self, S> {
+        Chained(self, other)
     }
 }
 
-impl<S: ProcessingStep> ProcessingStepChain for S {}
+impl<S: ProcessingStep> ProcessingChain for S {}
 
-pub trait ProcessingStepParallel: Sized + ProcessingStep {
-    fn parallel(self) -> ParallelPipeline<Self> {
-        ParallelPipeline(self)
+pub trait ProcessingParallel: Sized + ProcessingStep {
+    fn parallel(self) -> Parallel<Self> {
+        Parallel(self)
     }
 }
 
-impl<S: ProcessingStep> ProcessingStepParallel for S {}
+impl<S: ProcessingStep> ProcessingParallel for S {}
 
 pub trait IntoPipeline: Sized + ProcessingStep + 'static {
     fn into_pipeline(self) -> ProcessingPipeline<Self::Input, Self::Output> {
@@ -66,7 +69,27 @@ pub trait IntoPipeline: Sized + ProcessingStep + 'static {
     }
 }
 
-impl<S: ProcessingStep + 'static> IntoPipeline for S {}
+pub trait ProcessingMap: ProcessingStep + Sized {
+    fn map<F: Fn(Self::Output) -> T + Send + Sync + 'static, T: Send + Sync>(
+        self,
+        map_fn: F,
+    ) -> Map<Self, T> {
+        Map(self, Box::new(map_fn))
+    }
+}
+
+impl<S: ProcessingStep> ProcessingMap for S {}
+
+#[async_trait]
+impl<S: ProcessingStep, T: Send + Sync> ProcessingStep for Map<S, T> {
+    type Input = S::Input;
+    type Output = T;
+
+    async fn process(&self, input: Self::Input) -> Result<Self::Output> {
+        let inner_result = self.0.process(input).await?;
+        Ok(self.1(inner_result))
+    }
+}
 
 #[async_trait]
 impl<I: Send + Sync, O: Send + Sync> ProcessingStep for ProcessingPipeline<I, O> {
@@ -77,3 +100,5 @@ impl<I: Send + Sync, O: Send + Sync> ProcessingStep for ProcessingPipeline<I, O>
         self.0.process(input).await
     }
 }
+
+impl<S: ProcessingStep + 'static> IntoPipeline for S {}

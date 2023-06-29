@@ -13,6 +13,7 @@ use tracing_subscriber::fmt::format::FmtSpan;
 use crate::args::Args;
 
 mod args;
+mod common;
 mod config;
 mod context;
 pub mod data;
