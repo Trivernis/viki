@@ -10,7 +10,7 @@ pub struct LoadDirContent;
 #[async_trait]
 impl ProcessingStep for LoadDirContent {
     type Input = FolderData;
-    type Output = Vec<(PathBuf, String)>;
+    type Output = (Vec<PathBuf>, String);
 
     #[tracing::instrument(name = "load dir", level = "trace", skip_all)]
     async fn process(&self, input: Self::Input) -> Result<Self::Output> {
@@ -27,10 +27,6 @@ impl ProcessingStep for LoadDirContent {
             .to_owned()
             .unwrap_or(dir_name.into());
 
-        Ok(input
-            .pages
-            .into_iter()
-            .map(|p| (p, default_template.clone()))
-            .collect())
+        Ok((input.pages, default_template))
     }
 }

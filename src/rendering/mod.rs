@@ -49,19 +49,25 @@ impl ContentRenderer {
         }
         let mut tera = Tera::new(&self.template_glob).into_diagnostic()?;
         super::processors::register_all(&mut tera);
+
         let out_dir = self.ctx.dirs.output_dir.to_owned();
+        let styles = Arc::clone(&self.styles);
+        let ctx = Arc::clone(&self.ctx);
 
         LoadDirContent
-            .chain(
-                RenderPage {
-                    tera,
-                    styles: self.styles.clone(),
-                    ctx: self.ctx.clone(),
+            .construct(move |(files, default_template)| {
+                let step = RenderPage {
+                    tera: tera.clone(),
+                    styles: styles.clone(),
+                    ctx: ctx.clone(),
+                    default_template,
                 }
-                .map(map_path_to_output(out_dir))
+                .map(map_path_to_output(out_dir.clone()))
                 .chain(SaveFile)
-                .parallel(),
-            )
+                .parallel();
+
+                (files, step)
+            })
             .parallel()
             .process(dirs)
             .await?;

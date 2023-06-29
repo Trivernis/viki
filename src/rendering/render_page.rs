@@ -13,34 +13,32 @@ pub struct RenderPage {
     pub tera: Tera,
     pub styles: Arc<Mutex<Stylesheets>>,
     pub ctx: Arc<Context>,
+    pub default_template: String,
 }
 
 #[async_trait]
 impl ProcessingStep for RenderPage {
-    type Input = (PathBuf, String);
+    type Input = PathBuf;
     type Output = (PathBuf, String);
 
     #[tracing::instrument(name = "render page", level = "trace", skip_all)]
-    async fn process(&self, (page_path, default_template): Self::Input) -> Result<Self::Output> {
+    async fn process(&self, page_path: Self::Input) -> Result<Self::Output> {
         let page = load_page(&page_path).await?;
         let mut context = TeraContext::new();
-        let mut template_name = default_template;
-        let mut style_name = template_name.to_owned();
+        let mut template_name = None;
 
         match page {
             crate::data::Page::Data(data) => {
-                if let Some(tmpl) = data.metadata.template {
-                    template_name = tmpl.to_owned();
-                    style_name = tmpl;
-                }
+                template_name = data.metadata.template;
                 context.insert("data", &data.data);
             }
             crate::data::Page::Content(content) => context.insert("content", &content),
         }
+        let template_name = template_name.as_ref().unwrap_or(&self.default_template);
         {
             let mut styles = self.styles.lock().await;
             let style_embed = styles
-                .get_style_embed(&style_name, &self.ctx.dirs.output_dir)
+                .get_style_embed(template_name, &self.ctx.dirs.output_dir)
                 .await?;
             context.insert("style", &style_embed);
         };
