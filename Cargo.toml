@@ -6,6 +6,7 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+async-trait = "0.1.68"
 async-walkdir = "0.2.0"
 clap = { version = "4.3.8", features = ["derive"] }
 comrak = { version = "0.18.0", features = ["emojis"] }

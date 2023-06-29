@@ -16,6 +16,7 @@ mod args;
 mod config;
 mod context;
 pub mod data;
+mod pipeline;
 mod processors;
 mod rendering;
 
