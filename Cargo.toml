@@ -3,6 +3,10 @@ name = "viki"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "viki"
+path = "src/main.rs"
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -11,6 +15,7 @@ clap = { version = "4.3.8", features = ["derive"] }
 comrak = { version = "0.18.0", features = ["emojis"] }
 futures = "0.3.28"
 globset = { version = "0.4.10", features = ["serde", "serde1"] }
+lazy_static = "1.4.0"
 miette = { version = "5.9.0", features = ["serde", "fancy"] }
 rsass = "0.27.0"
 serde = { version = "1.0.164", features = ["derive"] }

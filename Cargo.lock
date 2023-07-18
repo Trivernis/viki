@@ -2011,6 +2011,7 @@ dependencies = [
  "comrak",
  "futures",
  "globset",
+ "lazy_static",
  "miette",
  "rsass",
  "serde",
