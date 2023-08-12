@@ -3,7 +3,9 @@ use std::path::PathBuf;
 use config::ConfigLoader;
 
 use miette::Result;
+
 mod config;
+mod content_loader;
 
 #[derive(Debug)]
 pub struct Paths {
